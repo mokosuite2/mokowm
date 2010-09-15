@@ -297,7 +297,8 @@ void reset_stack(void)
 
     while (iter) {
         wm_client* c = iter->data;
-        if (c->fullscreen) {
+        if (c->fullscreen && (splash_client ? !splash_client->visible :
+                TRUE)) {
             g_debug("[%s] raising fullscreen window 0x%x", __func__, c->win);
             raise_window(c->win);
         }

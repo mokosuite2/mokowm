@@ -7,4 +7,4 @@ fi
 
 make &&
 cd data && sudo make install && cd .. &&
-DISPLAY=$DISPLAY mokowm/mokowm
+DISPLAY=$DISPLAY src/mokowm
