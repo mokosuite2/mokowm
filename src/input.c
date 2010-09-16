@@ -361,22 +361,6 @@ Ecore_Evas* input_win_new(gboolean landscape)
     */
 
 
-    #if 0
-    /* -- registrazione INPUT METHOD -- */
-    TODO
-    TODO
-    TODO
-
-    ecore_imf_init();
-
-    Ecore_IMF_Context_Class class = {0};
-    //class.
-
-    Ecore_IMF_Context* ctx = ecore_imf_context_new(&class);
-
-    /* -- fine INPUT METHOD -- */
-    #endif
-
     // segnaletica ;)
     struct sigaction usr1;
     usr1.sa_handler = show_win;

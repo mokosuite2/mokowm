@@ -391,6 +391,9 @@ wm_client* manage_window(Ecore_X_Window win)
     ecore_x_netwm_name_get(win, &c->title);
     g_debug("[%s] name = %s, class = %s, title = %s", __func__, c->name, c->class, c->title);
 
+    // finestra padre
+    c->parent = ecore_x_window_parent_get(win);
+
     // tipo
     rc = ecore_x_netwm_window_type_get(win, &c->type);
     g_debug("[%s] type_get(%d) = %d", __func__, rc, c->type);
