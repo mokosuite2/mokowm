@@ -335,7 +335,7 @@ Ecore_Evas* input_win_new(gboolean landscape)
 
     kbd = edje_object_add(evas);
 
-    char* edjfile = g_strdup_printf(DATADIR "vkbd.%s.edj", landscape ? "landscape" : "portrait");
+    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
     edje_object_file_set(kbd, edjfile, "main");
     g_free(edjfile);
 
