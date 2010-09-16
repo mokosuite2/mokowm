@@ -23,6 +23,9 @@
 #include <Ecore.h>
 #include <Eet.h>
 #include <Eina.h>
+#if 0
+#include <Edje.h>
+#endif
 
 #include <glib.h>
 #include <glib-object.h>
@@ -67,7 +70,11 @@ guint reserved_bottom = 0;
 // timer pressione close
 static GTimer* close_timer = NULL;
 
+// evento timeout per window switcher
+static Ecore_Timer* switcher_timer = NULL;
+
 #define DELAY_SHOW_DESKTOP      2
+#define DELAY_WINDOW_SWITCHER   3
 
 static Eina_Bool _ignore_renew_event(void* data, int type, void* event)
 {
@@ -90,6 +97,68 @@ static Eina_Bool _mouse_down(void* data, int type, void* event)
     return EINA_TRUE;
 }
 
+static Eina_Bool _window_switcher(void* data)
+{
+    g_debug("Window switcher ACTIVE");
+
+    #if 0
+    int w = 200, h = 160;
+    Ecore_Evas* ee = ecore_evas_new(NULL, 480/2 - w/2, 640/2 - h/2, w, h, NULL);
+
+    Ecore_X_Window xwin = ecore_evas_software_x11_window_get(ee);
+    ecore_x_netwm_window_type_set(xwin, ECORE_X_WINDOW_TYPE_DIALOG);
+
+    Evas* evas = ecore_evas_get(ee);
+
+    Evas_Object *bg = evas_object_rectangle_add(evas);
+    evas_object_resize(bg, w, h);
+    evas_object_color_set(bg, 128, 128, 128, 255);
+    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+    evas_object_size_hint_align_set(bg, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_show(bg);
+
+    // una bella table :)
+    Evas_Object *t = evas_object_table_add(evas);
+    evas_object_size_hint_weight_set(t, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+    evas_object_size_hint_weight_set(t, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_table_padding_set(t, 2, 2);
+
+    GList* iter = windows->head;
+
+    while (iter) {
+        wm_client* c = iter->data;
+        if (c->title) {
+            g_debug("Window: %s", c->title);
+
+            Evas_Object *bt = edje_object_add(evas);
+            edje_object_file_set(bt, DATADIR "/mokosuite/theme.edj", "launcher");
+            //edje_object_part_swallow(bt, "icon", ic);
+
+            // titolo
+            edje_object_part_text_set(bt, "title", c->title);
+
+            // sizing
+            evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+            evas_object_size_hint_min_set(bt, 115, 140);
+            evas_object_show(bt);
+
+            evas_object_table_pack(t, bt, 0, 0, 1, 1);
+        }
+
+        iter = iter->next;
+    }
+
+
+    evas_object_show(t);
+
+    // mostra la finestra
+    ecore_evas_show(ee);
+    #endif
+
+    switcher_timer = NULL;
+    return FALSE;
+}
+
 static Eina_Bool _key_down(void* data, int type, void* event)
 {
     Ecore_Event_Key* e = event;
@@ -101,6 +170,9 @@ static Eina_Bool _key_down(void* data, int type, void* event)
         // fai partire il timer
         if (!close_timer) close_timer = g_timer_new();
         else g_timer_start(close_timer);
+
+        if (!switcher_timer)
+            switcher_timer = ecore_timer_add(DELAY_WINDOW_SWITCHER, _window_switcher, NULL);
     }
 
     return EINA_TRUE;
@@ -114,6 +186,11 @@ static Eina_Bool _key_up(void* data, int type, void* event)
 
     // chiudi finestra
     if (!strcasecmp(e->keyname, CLOSE_KEY)) {
+        if (switcher_timer) {
+            ecore_timer_del(switcher_timer);
+            switcher_timer = NULL;
+        }
+
         if (close_timer)
             g_debug("[%s] elapsed: %f, desktop_client = %p",
                 __func__, g_timer_elapsed(close_timer, NULL), desktop_client);
@@ -216,7 +293,7 @@ wm_client* find_client(Ecore_X_Window win)
 // tira su la finestra passata e le da il focus
 void raise_window(Ecore_X_Window win)
 {
-    g_debug("[%s] Giving focus 0x%x (input_win=0x%x)", __func__, win, (input_client != NULL) ? input_client->win : NULL);
+    g_debug("[%s] Giving focus 0x%x (input_win=0x%x)", __func__, win, (input_client != NULL) ? input_client->win : 0);
     ecore_x_window_focus(win);
     ecore_x_window_raise(win);
 

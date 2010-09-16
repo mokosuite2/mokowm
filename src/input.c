@@ -322,7 +322,7 @@ Ecore_Evas* input_win_new(gboolean landscape)
     }
 
     g_debug("Creating input window");
-    ee = ecore_evas_software_x11_new(NULL, 0, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT);
+    ee = ecore_evas_new(NULL, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT, NULL);
     if (ee == NULL) {
         g_warning("Unable to create input window canvas.");
         return NULL;
