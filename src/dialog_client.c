@@ -39,7 +39,8 @@ void dialog_client_reconfigure(wm_client *c)
     int rw, rh;
 
     ecore_x_window_geometry_get(root_win, NULL, NULL, &rw, &rh);
-    g_debug("rect.w = %d, rect.h = %d, RW = %d, RH = %d", c->rect.w, c->rect.h, rw, rh);
+    g_debug("[%s] rect.w = %d, rect.h = %d, RW = %d, RH = %d",
+        __func__, c->rect.w, c->rect.h, rw, rh);
 
     rh -= (reserved_top + reserved_bottom);
 

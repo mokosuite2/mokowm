@@ -217,12 +217,14 @@ Eina_Bool client_property_change(void* data, int type, void* event)
     g_debug("[%s] win=0x%x, atom=%d", __func__, e->win, e->atom);
     /*
     g_debug("[%s] ECORE_X_ATOM_NET_WM_STATE=%d, ECORE_X_ATOM_WM_STATE=%d, ECORE_X_ATOM_NET_WM_STATE_FULLSCREEN=%d, "
-        "ECORE_X_ATOM_NET_WM_ACTION_FULLSCREEN=%d, ECORE_X_ATOM_WINDOW=%d, ECORE_X_ATOM_WM_NORMAL_HINTS=%d", __func__,
+        "ECORE_X_ATOM_NET_WM_ACTION_FULLSCREEN=%d, ECORE_X_ATOM_WINDOW=%d, ECORE_X_ATOM_WM_NORMAL_HINTS=%d, "
+        "ECORE_X_ATOM_WM_CLIENT_LEADER=%d", __func__,
         ECORE_X_ATOM_NET_WM_STATE,
         ECORE_X_ATOM_WM_STATE,
         ECORE_X_ATOM_NET_WM_STATE_FULLSCREEN,
         ECORE_X_ATOM_NET_WM_ACTION_FULLSCREEN,
-        ECORE_X_ATOM_WINDOW, ECORE_X_ATOM_WM_NORMAL_HINTS);
+        ECORE_X_ATOM_WINDOW, ECORE_X_ATOM_WM_NORMAL_HINTS,
+        ECORE_X_ATOM_WM_CLIENT_LEADER);
     */
 
     wm_client* c = find_client(e->win);

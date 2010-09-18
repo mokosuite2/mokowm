@@ -47,6 +47,7 @@ extern guint reserved_top;
 extern guint reserved_bottom;
 
 wm_client* find_client(Ecore_X_Window win);
+Ecore_X_Window get_parent(Ecore_X_Window root, Ecore_X_Window win);
 
 void reset_stack(void);
 

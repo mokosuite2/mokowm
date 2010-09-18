@@ -290,6 +290,16 @@ wm_client* find_client(Ecore_X_Window win)
     return NULL;
 }
 
+Ecore_X_Window get_parent(Ecore_X_Window root, Ecore_X_Window win)
+{
+    Ecore_X_Window p = ecore_x_window_parent_get(win);
+    if (!p || p == root)
+        p = ecore_x_icccm_client_leader_get(win);
+
+    g_debug("[%s] window 0x%x parent = 0x%x", __func__, win, p);
+    return (p) ? p : root;
+}
+
 // tira su la finestra passata e le da il focus
 void raise_window(Ecore_X_Window win)
 {
@@ -378,6 +388,20 @@ void reset_stack(void)
                 TRUE)) {
             g_debug("[%s] raising fullscreen window 0x%x", __func__, c->win);
             raise_window(c->win);
+
+            // cerca eventuali figli da tirare su
+            Ecore_X_Window c_parent = get_parent(c->root, c->win);
+
+            GList* children = windows->head;
+            while (children) {
+                wm_client* f = children->data;
+                Ecore_X_Window f_parent = get_parent(f->root, f->win);
+
+                if (f != c && (f_parent == c->win || f_parent == c_parent))
+                    raise_window(f->win);
+
+                children = children->next;
+            }
         }
 
         iter = iter->next;
@@ -470,6 +494,13 @@ wm_client* manage_window(Ecore_X_Window win)
 
     // finestra padre
     c->parent = ecore_x_window_parent_get(win);
+    g_debug("[%s] parent window (parent) = 0x%x", __func__, c->parent);
+
+    // prova finestra leader
+    if (!c->parent) {
+        c->parent = ecore_x_icccm_client_leader_get(win);
+        g_debug("[%s] parent window (leader) = 0x%x", __func__, c->parent);
+    }
 
     // tipo
     rc = ecore_x_netwm_window_type_get(win, &c->type);
