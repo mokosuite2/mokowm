@@ -9,7 +9,7 @@ PV = "0.1+gitr${SRCPV}"
 #SRCREV = "719a200354d9b7aa825de75d19169067fd4871b0"
 
 SRC_URI = "git://gitorious.org/mokosuite2/mokowm.git;protocol=git"
-S = "${WORKDIR}/mokowm"
+S = "${WORKDIR}/git"
 
 CFLAGS += "-DOPENMOKO"
 EXTRA_OECONF = " --with-edje-cc=${STAGING_BINDIR_NATIVE}/edje_cc"
