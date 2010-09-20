@@ -204,9 +204,14 @@ static Eina_Bool _key_up(void* data, int type, void* event)
             if (input_client && input_client->visible)
                 input_win_hide();
 
-            else
+            else {
                 // mandiamo il segnale di delete alla finestra che ha il focus, non alla finestra sotto il mouse!
-                ecore_x_icccm_delete_window_send(ecore_x_window_focus_get(), e->timestamp);
+                //g_debug("[%s] focus_win=0x%x, event_win=0x%x", __func__, ecore_x_window_focus_get(), e->window);
+                // FIXME workaround per focus malvagio
+                Ecore_X_Window cur_focus = ecore_x_window_focus_get();
+                if (cur_focus == root_win) cur_focus = e->window;
+                ecore_x_icccm_delete_window_send(cur_focus, e->timestamp);
+            }
         }
     }
 
@@ -384,6 +389,11 @@ void reset_stack(void)
 
     while (iter) {
         wm_client* c = iter->data;
+        if (c == input_client || c == dock_client || c == splash_client) {
+            iter = iter->next;
+            continue;
+        }
+
         if (c->fullscreen && (splash_client ? !splash_client->visible :
                 TRUE)) {
             g_debug("[%s] raising fullscreen window 0x%x", __func__, c->win);
