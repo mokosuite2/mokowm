@@ -206,11 +206,14 @@ static Eina_Bool _key_up(void* data, int type, void* event)
 
             else {
                 // mandiamo il segnale di delete alla finestra che ha il focus, non alla finestra sotto il mouse!
-                //g_debug("[%s] focus_win=0x%x, event_win=0x%x", __func__, ecore_x_window_focus_get(), e->window);
                 // FIXME workaround per focus malvagio
                 Ecore_X_Window cur_focus = ecore_x_window_focus_get();
                 if (cur_focus == root_win) cur_focus = e->window;
+
+                //g_debug("[%s] focus_win=0x%x, e.window=0x%x, e.event_window=0x%x, cur_focus=0x%x",
+                //    __func__, ecore_x_window_focus_get(), e->window, e->event_window, cur_focus);
                 ecore_x_icccm_delete_window_send(cur_focus, e->timestamp);
+                //ecore_x_window_delete_request_send(cur_focus);
             }
         }
     }
