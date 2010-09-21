@@ -1,4 +1,4 @@
-AC_INIT([mokowm], [0.1], [daniele.athome@gmail.com], [mokowm])
+AC_INIT([mokowm], [1.0.99], [daniele.athome@gmail.com], [mokowm])
 AC_CONFIG_SRCDIR(Makefile.am)
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
