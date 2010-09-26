@@ -410,7 +410,8 @@ void reset_stack(void)
                 wm_client* f = children->data;
                 Ecore_X_Window f_parent = get_parent(f->root, f->win);
 
-                if (f != c && (f_parent == c->win || f_parent == c_parent))
+                if (f != c && (f_parent == c->win ||
+                        (f_parent == c_parent && f_parent != f->root)))
                     raise_window(f->win);
 
                 children = children->next;
