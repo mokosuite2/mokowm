@@ -79,7 +79,7 @@ Eina_Bool client_show_request(void* data, int type, void* event)
 Eina_Bool client_visible(void* data, int type, void* event)
 {
     Ecore_X_Event_Window_Visibility_Change* e = event;
-    g_debug("[%s] win=0x%x", __func__, e->win);
+    g_debug("[%s] win=0x%x, visible=%d", __func__, e->win, ecore_x_window_visible_get(e->win));
     
     wm_client* c = find_client(e->win);
     // maneggia! :D
@@ -87,7 +87,7 @@ Eina_Bool client_visible(void* data, int type, void* event)
         c = manage_window(e->win);
 
     c->visible = TRUE;
-    raise_client(c);
+    // FIXME perche' non dovrei raisare il client? -- raise_client(c);
 
     if (c == input_client)
         input_client_show(c);
