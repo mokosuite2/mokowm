@@ -520,6 +520,9 @@ wm_client* manage_window(Ecore_X_Window win)
     rc = ecore_x_netwm_window_type_get(win, &c->type);
     g_debug("[%s] type_get(%d) = %d", __func__, rc, c->type);
 
+    // visible
+    c->visible = ecore_x_window_visible_get(win);
+
     // stati
     Ecore_X_Window_State* state = NULL;
     unsigned int num = 0;

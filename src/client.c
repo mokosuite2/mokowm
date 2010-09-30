@@ -92,6 +92,9 @@ Eina_Bool client_visible(void* data, int type, void* event)
     if (c == input_client)
         input_client_show(c);
 
+    else if (c == dock_client)
+        dock_client_show(c);
+
     return EINA_TRUE;
 }
 
