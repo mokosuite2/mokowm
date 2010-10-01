@@ -25,11 +25,18 @@
 #include <Ecore_Evas.h>
 #include <glib.h>
 
+extern int INPUT_WIDTH;
+extern int INPUT_HEIGHT;
+extern int INPUT_X;
+extern int INPUT_Y;
+
 Ecore_X_Window input_xwin(void);
 
 void input_win_show(void);
 void input_win_hide(void);
 
-Ecore_Evas* input_win_new(gboolean landscape);
+void input_win_switch(gboolean is_landscape);
+
+Ecore_Evas* input_win_new(gboolean is_landscape);
 
 #endif  /* __MOKO_INPUT_H */

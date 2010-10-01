@@ -33,6 +33,7 @@
 #include "input.h"
 #include "wm.h"
 #include "client.h"
+#include "input_client.h"
 #include "dialog_client.h"
 #include "dock_client.h"
 #include "splash_client.h"
@@ -236,6 +237,11 @@ static Eina_Bool _screen_changed(void *data, int type, void *event_info)
     g_debug("[%s] screen has changed to %dx%d, rotation %d", __func__, event->size.width, event->size.height, event->orientation);
 
     previous_state = event->orientation;
+
+    // aggiorna l'input_client
+    if (input_client) {
+        input_client_screen_changed(input_client, event->orientation);
+    }
 
     // resize di tutte le finestre
     resize_all_clients();

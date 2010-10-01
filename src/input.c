@@ -28,10 +28,10 @@
 #include "input.h"
 
 // meta-costanti LOOOL :D
-static int INPUT_WIDTH;
-static int INPUT_HEIGHT;
-static int INPUT_X;
-static int INPUT_Y;
+int INPUT_WIDTH;
+int INPUT_HEIGHT;
+int INPUT_X;
+int INPUT_Y;
 
 #define LANDSCAPE_INPUT_WIDTH     640
 #define LANDSCAPE_INPUT_HEIGHT    254 //234
@@ -46,6 +46,7 @@ static int INPUT_Y;
 static gboolean is_shift_down = FALSE;
 static gboolean is_mouse_down = FALSE;
 
+static gboolean landscape = FALSE;
 static Ecore_X_Window xwin = 0;
 static Ecore_Evas* ee = NULL;
 static Evas_Object* kbd = NULL;
@@ -281,10 +282,6 @@ Ecore_X_Window input_xwin(void)
 void input_win_show(void)
 {
     if (ee) {
-        // FIXME ehm!
-        if (INPUT_WIDTH == LANDSCAPE_INPUT_WIDTH)
-            system("xrandr -o 1");
-
         ecore_evas_show(ee);
         ecore_x_window_raise(xwin);
     }
@@ -294,19 +291,54 @@ void input_win_hide(void)
 {
     if (ee) {
         ecore_evas_hide(ee);
-        // FIXME ehm!
-        if (INPUT_WIDTH == LANDSCAPE_INPUT_WIDTH)
-            system("xrandr -o 0");
+    }
+}
+
+/* cambio di orientamento */
+void input_win_switch(gboolean is_landscape)
+{
+    g_debug("[%s] landscape=%s, is_landscape=%s",
+        __func__, landscape ? "true" : "false", is_landscape ? "true" : "false");
+
+    if (landscape != is_landscape) {
+        landscape = is_landscape;
+
+        if (landscape) {
+            INPUT_WIDTH = LANDSCAPE_INPUT_WIDTH;
+            INPUT_HEIGHT = LANDSCAPE_INPUT_HEIGHT;
+            INPUT_X = LANDSCAPE_INPUT_X;
+            INPUT_Y = LANDSCAPE_INPUT_Y;
+        }
+        else {
+            INPUT_WIDTH = PORTRAIT_INPUT_WIDTH;
+            INPUT_HEIGHT = PORTRAIT_INPUT_HEIGHT;
+            INPUT_X = PORTRAIT_INPUT_X;
+            INPUT_Y = PORTRAIT_INPUT_Y;
+        }
+
+        g_debug("[%s] resizing input window to %dx%d and moving to %dx%d",
+                __func__, INPUT_WIDTH, INPUT_HEIGHT, INPUT_X, INPUT_Y);
+        ecore_evas_move_resize(ee, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT);
+
+        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
+        edje_object_file_set(kbd, edjfile, "main");
+        g_free(edjfile);
+
+        evas_object_hide(kbd);
+        evas_object_resize(kbd, INPUT_WIDTH, INPUT_HEIGHT);
+        evas_object_show(kbd);
     }
 }
 
 /* l'oggetto restituito e' statico */
-Ecore_Evas* input_win_new(gboolean landscape)
+Ecore_Evas* input_win_new(gboolean is_landscape)
 {
     if (ee) return ee;
     evas_init();
     edje_init();
     ecore_evas_init(); // FIXME: check errors
+
+    landscape = is_landscape;
 
     if (landscape) {
         INPUT_WIDTH = LANDSCAPE_INPUT_WIDTH;
@@ -321,10 +353,10 @@ Ecore_Evas* input_win_new(gboolean landscape)
         INPUT_Y = PORTRAIT_INPUT_Y;
     }
 
-    g_debug("Creating input window");
+    g_debug("[%s] Creating input window", __func__);
     ee = ecore_evas_new(NULL, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT, NULL);
     if (ee == NULL) {
-        g_warning("Unable to create input window canvas.");
+        g_warning("[%s] Unable to create input window canvas", __func__);
         return NULL;
     }
 
@@ -340,6 +372,7 @@ Ecore_Evas* input_win_new(gboolean landscape)
     g_free(edjfile);
 
     evas_object_resize(kbd, INPUT_WIDTH, INPUT_HEIGHT);
+    evas_object_show(kbd);
 
     // eventi sulla tastiera
     edje_object_signal_callback_add(kbd, "key_down", "*", kbd_key_down, NULL);
@@ -349,17 +382,15 @@ Ecore_Evas* input_win_new(gboolean landscape)
     edje_object_signal_callback_add(kbd, "mouse,down,1,*", "*", kbd_mouse_down_key, NULL);
     edje_object_signal_callback_add(kbd, "mouse,up,1", "*", kbd_mouse_up_key, NULL);
 
-    evas_object_show(kbd);
-
     ecore_evas_title_set(ee, "Virtual keyboard");
-    // NON MOSTRARE SUBITO -- ecore_evas_show(ee);
+    // NON MOSTRARE SUBITO
 
     /*
+    TODO
     self.on_mouse_down_add(self.on_mouse_down)
     self.on_mouse_up_add(self.on_mouse_up)
     self.on_key_down_add(self.on_key_down)
     */
-
 
     // segnaletica ;)
     struct sigaction usr1;
@@ -374,7 +405,7 @@ Ecore_Evas* input_win_new(gboolean landscape)
 
     // inizializza fakekey
     fk = fakekey_init(ecore_x_display_get());
-    g_debug("FakeKey instance created (%p)", fk);
+    g_debug("[%s] FakeKey instance created (%p)", __func__, fk);
 
     // array tasti premuti
     pressed_keys = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);

@@ -29,4 +29,6 @@ void input_client_destroy(wm_client *c);
 void input_client_hide(wm_client *c);
 void input_client_show(wm_client *c);
 
+void input_client_screen_changed(wm_client *c, Ecore_X_Randr_Orientation orientation);
+
 #endif  /* __MOKOWM_INPUT_CLIENT_H */

@@ -48,18 +48,13 @@ int main(int argc, char* argv[])
     ecore_app_args_set(argc, (const char **)argv);
 
     gboolean disable_input = FALSE;
-    gboolean input_landscape = FALSE;
 
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "il")) != -1) {
+    while ((c = getopt (argc, argv, "i")) != -1) {
         switch (c) {
             case 'i':
                 disable_input = TRUE;
-                break;
-
-            case 'l':
-                input_landscape = TRUE;
                 break;
 
             default:
@@ -88,8 +83,13 @@ int main(int argc, char* argv[])
     // inizializza il wm
     wm_init();
 
-    if (!disable_input)
-        input_win_new(input_landscape);
+    if (!disable_input) {
+        Ecore_X_Randr_Orientation orientation =
+            ecore_x_randr_screen_primary_output_orientation_get(ecore_x_window_root_first_get());
+
+        input_win_new(orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
+            orientation == ECORE_X_RANDR_ORIENTATION_ROT_270);
+    }
 
     // gestisci tutte le finestre
     manage_all_windows();

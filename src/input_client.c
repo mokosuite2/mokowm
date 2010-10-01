@@ -30,6 +30,7 @@
 #include "input_client.h"
 #include "client.h"
 #include "wm.h"
+#include "input.h"
 
 void input_client_reconfigure(wm_client *c)
 {
@@ -59,4 +60,16 @@ void input_client_hide(wm_client *c)
 {
     // e' piu' o meno la stessa cosa...
     input_client_destroy(c);
+}
+
+void input_client_screen_changed(wm_client *c, Ecore_X_Randr_Orientation orientation)
+{
+    input_win_switch(orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
+        orientation == ECORE_X_RANDR_ORIENTATION_ROT_270);
+
+    // HACK purtroppo non si sa perche' la configure_request non arriva :(
+    c->rect.x = INPUT_X;
+    c->rect.y = INPUT_Y;
+    c->rect.w = INPUT_WIDTH;
+    c->rect.h = INPUT_HEIGHT;
 }
