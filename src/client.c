@@ -80,7 +80,7 @@ Eina_Bool client_visible(void* data, int type, void* event)
 {
     Ecore_X_Event_Window_Visibility_Change* e = event;
     g_debug("[%s] win=0x%x, visible=%d", __func__, e->win, ecore_x_window_visible_get(e->win));
-    
+
     wm_client* c = find_client(e->win);
     // maneggia! :D
     if (!c)
@@ -173,7 +173,7 @@ Eina_Bool client_configure_request(void* data, int type, void* event)
     #else
     real_reconfigure_client(c);
     #endif
-    
+
 
     if (c == dock_client)
         resize_all_clients();
@@ -241,7 +241,7 @@ Eina_Bool client_property_change(void* data, int type, void* event)
 
         // forse e' il caso di resettare tutto...
         resize_all_clients();
-        reset_stack();
+        raise_important();
     }
 
     else if (e->atom == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE) {
@@ -276,6 +276,7 @@ Eina_Bool client_state_request(void* data, int type, void* event)
     }
 
     resize_all_clients();
+    // TODO aggiustare gestione fullscreen
     reset_stack();
     return EINA_TRUE;
 }

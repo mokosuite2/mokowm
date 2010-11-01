@@ -338,8 +338,8 @@ void show_desktop(void)
     // dai il focus alla finestra
     raise_window(desktop_client->win);
 
-    // riorganizza lo stack
-    reset_stack();
+    // ritira su le importanti
+    raise_important();
 }
 
 // tira su il client, rispettando l'organizzazione dello stack e modificando la coda delle finestre di conseguenza
@@ -360,8 +360,8 @@ void raise_client(wm_client* c)
         raise_window(c->win);
     }
 
-    // riorganizza lo stack
-    reset_stack();
+    // ritira su le importanti
+    raise_important();
 }
 
 void raise_last(wm_client* this)
@@ -380,10 +380,11 @@ void raise_last(wm_client* this)
     }
 }
 
-// riorganizza lo stack per tirare su le finestre privilegiate
-void reset_stack(void)
+void raise_important(void)
 {
-    // l'input client deve avere solo la visibilita'
+    g_debug("[%s] raising important windows", __func__);
+
+    // input and dock clients raise window only
     if (input_client)
         ecore_x_window_raise(input_client->win);
 
@@ -392,6 +393,12 @@ void reset_stack(void)
 
     if (splash_client)
         raise_window(splash_client->win);
+}
+
+// riorganizza lo stack per tirare su le finestre privilegiate
+void reset_stack(void)
+{
+    raise_important();
 
     // cerca finestre a schermo intero
     GList* iter = windows->head;
