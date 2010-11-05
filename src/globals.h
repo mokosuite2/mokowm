@@ -1,6 +1,6 @@
 /*
  * Mokosuite
- * Virtual keyboard input window
+ * Global definitions
  * Copyright (C) 2009-2010 Daniele Ricci <daniele.athome@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,21 +18,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __VKBD_H
-#define __VKBD_H
+#ifndef __GLOBALS_H
+#define __GLOBALS_H
 
-#include <Ecore_X.h>
-#include <Ecore_Evas.h>
-#include <glib.h>
+#include <Eina.h>
 
-#include "globals.h"
-#include "input_client.h"
+// default log domain
+#undef EINA_LOG_DOMAIN_DEFAULT
+#define EINA_LOG_DOMAIN_DEFAULT _log_dom
+extern int _log_dom;
 
-wm_input_client* vkbd_create(wm_client* client, bool landscape);
+#ifdef TRUE
+#undef TRUE
+#endif
 
-void vkbd_show(wm_input_client* ic);
-void vkbd_hide(wm_input_client* ic);
+#ifdef FALSE
+#undef FALSE
+#endif
 
-void vkbd_set_orientation(wm_input_client* ic, bool landscape);
+typedef Eina_Bool bool;
 
-#endif  /* __VKBD_H */
+#define TRUE    EINA_TRUE
+#define FALSE   EINA_FALSE
+
+#ifdef DEBUG
+#define LOG_LEVEL   EINA_LOG_LEVEL_DBG
+#else
+#define LOG_LEVEL   EINA_LOG_LEVEL_INFO
+#endif
+
+
+#endif /* __GLOBALS_H */

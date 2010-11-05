@@ -34,11 +34,17 @@
 #include "config.h"
 #endif
 
+#include "globals.h"
 #include "wm.h"
 #include "vkbd.h"
 #include "qwo4.h"
 
+// default log domain
+int _log_dom = -1;
+
+// input window in use
 wm_input_client* input_win = NULL;
+
 
 static void input_show(int sig_num)
 {
@@ -54,15 +60,14 @@ static void input_hide(int sig_num)
 
 int main(int argc, char* argv[])
 {
-    g_type_init();
-    g_set_prgname(PACKAGE);
-
     eina_init();
-    eet_init();
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
 
-    gboolean disable_input = FALSE;
+    _log_dom = eina_log_domain_register(PACKAGE, EINA_COLOR_CYAN);
+    eina_log_domain_level_set(PACKAGE, LOG_LEVEL);
+
+    bool disable_input = FALSE;
 
     int c;
     opterr = 0;
@@ -74,9 +79,9 @@ int main(int argc, char* argv[])
 
             default:
                 if (isprint(optopt))
-                    g_error("Unknown option: `-%c'.", optopt);
+                    EINA_LOG_ERR("Unknown option: `-%c'.", optopt);
                 else
-                    g_error("Unknown option: `-\\x%x'.", optopt);
+                    EINA_LOG_ERR("Unknown option: `-\\x%x'.", optopt);
                 return EXIT_FAILURE;
         }
         opterr = 0;
@@ -84,7 +89,7 @@ int main(int argc, char* argv[])
 
 
     if (!ecore_x_init(NULL)) {
-        g_error("Cannot connect to X server. Exiting.");
+        EINA_LOG_ERR("Cannot connect to X server. Exiting.");
         return EXIT_FAILURE;
     }
 

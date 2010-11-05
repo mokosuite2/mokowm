@@ -75,6 +75,15 @@ fi
 AM_CONDITIONAL(ENABLE_QVGA, test "x$enable_qvga" = "xyes")
 AC_SUBST(SCALE_FACTOR)
 
+AC_ARG_ENABLE(debug,
+    AC_HELP_STRING([--enable-debug], [Enable debug build (default: disabled)]),
+    enable_debug=$enableval,
+    enable_debug=no)
+
+if test "x$enable_debug" != "xno"; then
+    AC_DEFINE(DEBUG, 1, [Define to enable debug build])
+fi
+
 
 AC_OUTPUT([
   Makefile
