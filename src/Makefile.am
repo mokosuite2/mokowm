@@ -5,8 +5,10 @@ bin_PROGRAMS = mokowm
 
 mokowm_SOURCES = \
 	main.c \
-	input.c \
-	input.h \
+	vkbd.c \
+	vkbd.h \
+	qwo4.c \
+	qwo4.h \
 	wm.c \
 	wm.h \
 	client.c \

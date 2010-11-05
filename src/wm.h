@@ -25,6 +25,10 @@
 #include <Ecore_Evas.h>
 
 #include "client.h"
+#include "input_client.h"
+
+/* -- da main -- finestra di input -- */
+extern wm_input_client* input_win;
 
 /* -- client particolari -- */
 

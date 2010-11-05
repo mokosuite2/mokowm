@@ -30,7 +30,6 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "input.h"
 #include "wm.h"
 #include "client.h"
 #include "input_client.h"
@@ -202,8 +201,8 @@ static Eina_Bool _key_up(void* data, int type, void* event)
         }
 
         else {
-            if (input_client && input_client->visible)
-                input_win_hide();
+            if (input_win && input_client && input_client->visible)
+                (input_win->hide)(input_win);
 
             else {
                 // mandiamo il segnale di delete alla finestra che ha il focus, non alla finestra sotto il mouse!
@@ -239,8 +238,8 @@ static Eina_Bool _screen_changed(void *data, int type, void *event_info)
     previous_state = event->orientation;
 
     // aggiorna l'input_client
-    if (input_client) {
-        input_client_screen_changed(input_client, event->orientation);
+    if (input_client && input_win) {
+        input_client_screen_changed(input_win, event->orientation);
     }
 
     // resize di tutte le finestre
@@ -279,8 +278,11 @@ void client_destroyed(wm_client* c)
     else if (c == splash_client)
         splash_client = NULL;
 
-    else if (c == input_client)
+    else if (c == input_client) {
         input_client = NULL;
+        if (input_win)
+            input_win->client = NULL;
+    }
 
     g_queue_remove(windows, c);
     g_free(c);
@@ -497,6 +499,8 @@ void assign_client(wm_client* c)
 
     else if (c->type == ECORE_X_WINDOW_TYPE_UTILITY) {
         input_client = c;
+        if (input_win)
+            input_win->client = c;
     }
 }
 

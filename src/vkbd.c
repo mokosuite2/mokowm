@@ -18,20 +18,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <signal.h>
 #include <Edje.h>
 #include <Evas.h>
 #include <Ecore_X.h>
 #include <fakekey/fakekey.h>
 #include <ctype.h>
 
-#include "input.h"
-
-// meta-costanti LOOOL :D
-int INPUT_WIDTH;
-int INPUT_HEIGHT;
-int INPUT_X;
-int INPUT_Y;
+#include "vkbd.h"
 
 #define LANDSCAPE_INPUT_WIDTH     640
 #define LANDSCAPE_INPUT_HEIGHT    254 //234
@@ -43,25 +36,17 @@ int INPUT_Y;
 #define PORTRAIT_INPUT_X         0
 #define PORTRAIT_INPUT_Y         (640 - PORTRAIT_INPUT_HEIGHT)
 
-static gboolean is_shift_down = FALSE;
-static gboolean is_mouse_down = FALSE;
+typedef struct {
+    gboolean is_shift_down;
+    gboolean is_mouse_down;
 
-static gboolean landscape = FALSE;
-static Ecore_X_Window xwin = 0;
-static Ecore_Evas* ee = NULL;
-static Evas_Object* kbd = NULL;
-static FakeKey* fk = NULL;
-static GHashTable* pressed_keys = NULL;
+    Ecore_Evas* ee;
+    Evas_Object* kbd;
 
-static void show_win(int sig_num)
-{
-    input_win_show();
-}
+    FakeKey* fk;
+    GHashTable* pressed_keys;
+} vkbd_private_data;
 
-static void hide_win(int sig_num)
-{
-    input_win_hide();
-}
 
 static void each_release_key(gpointer key, gpointer value, gpointer data)
 {
@@ -70,6 +55,9 @@ static void each_release_key(gpointer key, gpointer value, gpointer data)
 
 static void kbd_key_down(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
+    wm_input_client* ic = data;
+    vkbd_private_data* priv = ic->private;
+
     char* key = NULL;
     char* work = g_strdup(source);
 
@@ -82,14 +70,14 @@ static void kbd_key_down(void *data, Evas_Object *obj, const char *emission, con
     if (!strcmp(key, "enter")) {
         // TODO press_shift();
         // key press!!
-        fakekey_press_keysym(fk, XK_Return, 0);
-        fakekey_release(fk);
+        fakekey_press_keysym(priv->fk, XK_Return, 0);
+        fakekey_release(priv->fk);
     }
 
     else if (!strcmp(key, "backspace")) {
         // key press!!
-        fakekey_press_keysym(fk, XK_BackSpace, 0);
-        fakekey_release(fk);
+        fakekey_press_keysym(priv->fk, XK_BackSpace, 0);
+        fakekey_release(priv->fk);
     }
 
     else if (!strcmp(key, "shift")) {
@@ -120,7 +108,7 @@ static void kbd_key_down(void *data, Evas_Object *obj, const char *emission, con
     }
 
     else {
-        if (is_shift_down) {
+        if (priv->is_shift_down) {
             // TODO release_shift();
             key[0] = toupper(key[0]);
         } else {
@@ -129,8 +117,8 @@ static void kbd_key_down(void *data, Evas_Object *obj, const char *emission, con
 
         // key press!!!
         g_debug("Sending key press: %s (%c)", key, key[0]);
-        fakekey_press(fk, (unsigned char *) key, 1, 0);
-        fakekey_release(fk);
+        fakekey_press(priv->fk, (unsigned char *) key, 1, 0);
+        fakekey_release(priv->fk);
     }
 
     g_free(work);
@@ -138,8 +126,11 @@ static void kbd_key_down(void *data, Evas_Object *obj, const char *emission, con
 
 static void kbd_mouse_over_key(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
+    wm_input_client* ic = data;
+    vkbd_private_data* priv = ic->private;
+
     // mmm...
-    if (!is_mouse_down || !strstr(source, ":")) return;
+    if (!priv->is_mouse_down || !strstr(source, ":")) return;
 
     char *work = g_strdup(source);
     char *part = NULL, *subpart = NULL;
@@ -151,7 +142,7 @@ static void kbd_mouse_over_key(void *data, Evas_Object *obj, const char *emissio
     *(subpart-1) = '\0';
     part = (char *) work;
 
-    if (g_hash_table_lookup(pressed_keys, subpart))
+    if (g_hash_table_lookup(priv->pressed_keys, subpart))
         return;
 
     #if 0
@@ -163,9 +154,9 @@ static void kbd_mouse_over_key(void *data, Evas_Object *obj, const char *emissio
     #else
     Evas_Object* part_obj = edje_object_part_swallow_get(obj, part);
 
-    g_hash_table_foreach(pressed_keys, each_release_key, part_obj);
-    g_hash_table_remove_all(pressed_keys);
-    g_hash_table_insert(pressed_keys, g_strdup(subpart), GINT_TO_POINTER(1));
+    g_hash_table_foreach(priv->pressed_keys, each_release_key, part_obj);
+    g_hash_table_remove_all(priv->pressed_keys);
+    g_hash_table_insert(priv->pressed_keys, g_strdup(subpart), GINT_TO_POINTER(1));
 
     edje_object_signal_emit(part_obj, "press_key", subpart);
     #endif
@@ -173,8 +164,11 @@ static void kbd_mouse_over_key(void *data, Evas_Object *obj, const char *emissio
 
 static void kbd_mouse_out_key(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
+    wm_input_client* ic = data;
+    vkbd_private_data* priv = ic->private;
+
     // mmm...
-    if (!is_mouse_down || !strstr(source, ":")) return;
+    if (!priv->is_mouse_down || !strstr(source, ":")) return;
 
     char *work = g_strdup(source);
     char *part = NULL, *subpart = NULL;
@@ -193,8 +187,8 @@ static void kbd_mouse_out_key(void *data, Evas_Object *obj, const char *emission
         del self.pressed_keys[subpart]
         o.signal_emit("release_key", subpart)
     #else
-    if (g_hash_table_lookup(pressed_keys, subpart)) {
-        g_hash_table_remove(pressed_keys, subpart);
+    if (g_hash_table_lookup(priv->pressed_keys, subpart)) {
+        g_hash_table_remove(priv->pressed_keys, subpart);
         edje_object_signal_emit(part_obj, "release_key", subpart);
     }
     #endif
@@ -202,6 +196,9 @@ static void kbd_mouse_out_key(void *data, Evas_Object *obj, const char *emission
 
 static void kbd_mouse_down_key(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
+    wm_input_client* ic = data;
+    vkbd_private_data* priv = ic->private;
+
     // mmm...
     if (!strstr(source, ":")) return;
 
@@ -215,9 +212,9 @@ static void kbd_mouse_down_key(void *data, Evas_Object *obj, const char *emissio
     *(subpart-1) = '\0';
     part = (char *) work;
 
-    is_mouse_down = TRUE;
+    priv->is_mouse_down = TRUE;
 
-    if (g_hash_table_lookup(pressed_keys, subpart))
+    if (g_hash_table_lookup(priv->pressed_keys, subpart))
         return;
 
     // TODO
@@ -229,9 +226,9 @@ static void kbd_mouse_down_key(void *data, Evas_Object *obj, const char *emissio
     #else
     Evas_Object* part_obj = edje_object_part_swallow_get(obj, part);
 
-    g_hash_table_foreach(pressed_keys, each_release_key, part_obj);
-    g_hash_table_remove_all(pressed_keys);
-    g_hash_table_insert(pressed_keys, g_strdup(subpart), GINT_TO_POINTER(1));
+    g_hash_table_foreach(priv->pressed_keys, each_release_key, part_obj);
+    g_hash_table_remove_all(priv->pressed_keys);
+    g_hash_table_insert(priv->pressed_keys, g_strdup(subpart), GINT_TO_POINTER(1));
     #endif
 
     edje_object_signal_emit(part_obj, "press_key", subpart);
@@ -241,6 +238,9 @@ static void kbd_mouse_down_key(void *data, Evas_Object *obj, const char *emissio
 
 static void kbd_mouse_up_key(void *data, Evas_Object *obj, const char *emission, const char *source)
 {
+    wm_input_client* ic = data;
+    vkbd_private_data* priv = ic->private;
+
     // mmm...
     if (!strstr(source, ":")) return;
 
@@ -256,7 +256,7 @@ static void kbd_mouse_up_key(void *data, Evas_Object *obj, const char *emission,
 
     Evas_Object* part_obj = edje_object_part_swallow_get(obj, part);
 
-    is_mouse_down = FALSE;
+    priv->is_mouse_down = FALSE;
 
     // TODO
     #if 0
@@ -265,8 +265,8 @@ static void kbd_mouse_up_key(void *data, Evas_Object *obj, const char *emission,
         o.signal_emit("release_key", subpart)
         o.signal_emit("activated_key", subpart)
     #else
-    if (g_hash_table_lookup(pressed_keys, subpart)) {
-        g_hash_table_remove(pressed_keys, subpart);
+    if (g_hash_table_lookup(priv->pressed_keys, subpart)) {
+        g_hash_table_remove(priv->pressed_keys, subpart);
 
         edje_object_signal_emit(part_obj, "release_key", subpart);
         edje_object_signal_emit(part_obj, "activated_key", subpart);
@@ -274,115 +274,110 @@ static void kbd_mouse_up_key(void *data, Evas_Object *obj, const char *emission,
     #endif
 }
 
-Ecore_X_Window input_xwin(void)
+void vkbd_show(wm_input_client* ic)
 {
-    return xwin;
+    ecore_evas_show(ic->window);
 }
 
-void input_win_show(void)
+void vkbd_hide(wm_input_client* ic)
 {
-    if (ee) {
-        ecore_evas_show(ee);
-        ecore_x_window_raise(xwin);
-    }
+    ecore_evas_hide(ic->window);
 }
 
-void input_win_hide(void)
+/* orientation change */
+void vkbd_set_orientation(wm_input_client* ic, gboolean is_landscape)
 {
-    if (ee) {
-        ecore_evas_hide(ee);
-    }
-}
+    g_debug("[%s] old_landscape=%s, new_landscape=%s",
+        __func__, ic->landscape ? "true" : "false", is_landscape ? "true" : "false");
 
-/* cambio di orientamento */
-void input_win_switch(gboolean is_landscape)
-{
-    g_debug("[%s] landscape=%s, is_landscape=%s",
-        __func__, landscape ? "true" : "false", is_landscape ? "true" : "false");
+    if (ic->landscape != is_landscape) {
+        ic->landscape = is_landscape;
 
-    if (landscape != is_landscape) {
-        landscape = is_landscape;
-
-        if (landscape) {
-            INPUT_WIDTH = LANDSCAPE_INPUT_WIDTH;
-            INPUT_HEIGHT = LANDSCAPE_INPUT_HEIGHT;
-            INPUT_X = LANDSCAPE_INPUT_X;
-            INPUT_Y = LANDSCAPE_INPUT_Y;
+        if (is_landscape) {
+            ic->width = LANDSCAPE_INPUT_WIDTH;
+            ic->height = LANDSCAPE_INPUT_HEIGHT;
+            ic->x = LANDSCAPE_INPUT_X;
+            ic->y = LANDSCAPE_INPUT_Y;
         }
         else {
-            INPUT_WIDTH = PORTRAIT_INPUT_WIDTH;
-            INPUT_HEIGHT = PORTRAIT_INPUT_HEIGHT;
-            INPUT_X = PORTRAIT_INPUT_X;
-            INPUT_Y = PORTRAIT_INPUT_Y;
+            ic->width = PORTRAIT_INPUT_WIDTH;
+            ic->height = PORTRAIT_INPUT_HEIGHT;
+            ic->x = PORTRAIT_INPUT_X;
+            ic->y = PORTRAIT_INPUT_Y;
         }
 
         g_debug("[%s] resizing input window to %dx%d and moving to %dx%d",
-                __func__, INPUT_WIDTH, INPUT_HEIGHT, INPUT_X, INPUT_Y);
-        ecore_evas_move_resize(ee, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT);
+                __func__, ic->width, ic->height, ic->x, ic->y);
+        ecore_evas_move_resize(ic->window, ic->x, ic->y, ic->width, ic->height);
 
-        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
-        edje_object_file_set(kbd, edjfile, "main");
+        vkbd_private_data* priv = ic->private;
+
+        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", is_landscape ? "landscape" : "portrait");
+        edje_object_file_set(priv->kbd, edjfile, "main");
         g_free(edjfile);
 
-        evas_object_hide(kbd);
-        evas_object_resize(kbd, INPUT_WIDTH, INPUT_HEIGHT);
-        evas_object_show(kbd);
+        evas_object_hide(priv->kbd);
+        evas_object_resize(priv->kbd, ic->width, ic->height);
+        evas_object_show(priv->kbd);
     }
 }
 
-/* l'oggetto restituito e' statico */
-Ecore_Evas* input_win_new(gboolean is_landscape)
+wm_input_client* vkbd_create(wm_client* client, gboolean is_landscape)
 {
-    if (ee) return ee;
-    evas_init();
-    edje_init();
-    ecore_evas_init(); // FIXME: check errors
+    wm_input_client* ic = g_new0(wm_input_client, 1);
+    vkbd_private_data* priv = g_new0(vkbd_private_data, 1);
 
-    landscape = is_landscape;
+    ic->client = client;
+    ic->landscape = is_landscape;
+    ic->private = priv;
 
-    if (landscape) {
-        INPUT_WIDTH = LANDSCAPE_INPUT_WIDTH;
-        INPUT_HEIGHT = LANDSCAPE_INPUT_HEIGHT;
-        INPUT_X = LANDSCAPE_INPUT_X;
-        INPUT_Y = LANDSCAPE_INPUT_Y;
+    ic->set_orientation = vkbd_set_orientation;
+    ic->show = vkbd_show;
+    ic->hide = vkbd_hide;
+
+    if (is_landscape) {
+        ic->width = LANDSCAPE_INPUT_WIDTH;
+        ic->height = LANDSCAPE_INPUT_HEIGHT;
+        ic->x = LANDSCAPE_INPUT_X;
+        ic->y = LANDSCAPE_INPUT_Y;
     }
     else {
-        INPUT_WIDTH = PORTRAIT_INPUT_WIDTH;
-        INPUT_HEIGHT = PORTRAIT_INPUT_HEIGHT;
-        INPUT_X = PORTRAIT_INPUT_X;
-        INPUT_Y = PORTRAIT_INPUT_Y;
+        ic->width = PORTRAIT_INPUT_WIDTH;
+        ic->height = PORTRAIT_INPUT_HEIGHT;
+        ic->x = PORTRAIT_INPUT_X;
+        ic->y = PORTRAIT_INPUT_Y;
     }
 
     g_debug("[%s] Creating input window", __func__);
-    ee = ecore_evas_new(NULL, INPUT_X, INPUT_Y, INPUT_WIDTH, INPUT_HEIGHT, NULL);
-    if (ee == NULL) {
+    ic->window = ecore_evas_new(NULL, ic->x, ic->y, ic->width, ic->height, NULL);
+    if (!ic->window) {
         g_warning("[%s] Unable to create input window canvas", __func__);
         return NULL;
     }
 
-    xwin = ecore_evas_software_x11_window_get(ee);
-    ecore_x_netwm_window_type_set(xwin, ECORE_X_WINDOW_TYPE_UTILITY);
+    ecore_x_netwm_window_type_set(ecore_evas_software_x11_window_get(ic->window),
+        ECORE_X_WINDOW_TYPE_UTILITY);
 
-    Evas* evas = ecore_evas_get(ee);
+    Evas* evas = ecore_evas_get(ic->window);
 
-    kbd = edje_object_add(evas);
+    priv->kbd = edje_object_add(evas);
 
-    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
-    edje_object_file_set(kbd, edjfile, "main");
+    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", is_landscape ? "landscape" : "portrait");
+    edje_object_file_set(priv->kbd, edjfile, "main");
     g_free(edjfile);
 
-    evas_object_resize(kbd, INPUT_WIDTH, INPUT_HEIGHT);
-    evas_object_show(kbd);
+    evas_object_resize(priv->kbd, ic->width, ic->height);
+    evas_object_show(priv->kbd);
 
     // eventi sulla tastiera
-    edje_object_signal_callback_add(kbd, "key_down", "*", kbd_key_down, NULL);
-    edje_object_signal_callback_add(kbd, "mouse_over_key", "*", kbd_mouse_over_key, NULL);
-    edje_object_signal_callback_add(kbd, "mouse_out_key", "*", kbd_mouse_out_key, NULL);
-    edje_object_signal_callback_add(kbd, "mouse,down,1", "*", kbd_mouse_down_key, NULL);
-    edje_object_signal_callback_add(kbd, "mouse,down,1,*", "*", kbd_mouse_down_key, NULL);
-    edje_object_signal_callback_add(kbd, "mouse,up,1", "*", kbd_mouse_up_key, NULL);
+    edje_object_signal_callback_add(priv->kbd, "key_down", "*", kbd_key_down, ic);
+    edje_object_signal_callback_add(priv->kbd, "mouse_over_key", "*", kbd_mouse_over_key, ic);
+    edje_object_signal_callback_add(priv->kbd, "mouse_out_key", "*", kbd_mouse_out_key, ic);
+    edje_object_signal_callback_add(priv->kbd, "mouse,down,1", "*", kbd_mouse_down_key, ic);
+    edje_object_signal_callback_add(priv->kbd, "mouse,down,1,*", "*", kbd_mouse_down_key, ic);
+    edje_object_signal_callback_add(priv->kbd, "mouse,up,1", "*", kbd_mouse_up_key, ic);
 
-    ecore_evas_title_set(ee, "Virtual keyboard");
+    ecore_evas_title_set(ic->window, "Virtual keyboard");
     // NON MOSTRARE SUBITO
 
     /*
@@ -392,23 +387,12 @@ Ecore_Evas* input_win_new(gboolean is_landscape)
     self.on_key_down_add(self.on_key_down)
     */
 
-    // segnaletica ;)
-    struct sigaction usr1;
-    usr1.sa_handler = show_win;
-    usr1.sa_flags = 0;
-    sigaction(SIGUSR1, &usr1, NULL);
-
-    struct sigaction usr2;
-    usr2.sa_handler = hide_win;
-    usr2.sa_flags = 0;
-    sigaction(SIGUSR2, &usr2, NULL);
-
     // inizializza fakekey
-    fk = fakekey_init(ecore_x_display_get());
-    g_debug("[%s] FakeKey instance created (%p)", __func__, fk);
+    priv->fk = fakekey_init(ecore_x_display_get());
+    g_debug("[%s] FakeKey instance created (%p)", __func__, priv->fk);
 
     // array tasti premuti
-    pressed_keys = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    priv->pressed_keys = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
-    return ee;
+    return ic;
 }

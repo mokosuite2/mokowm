@@ -14,7 +14,7 @@ clean-local:
 	$(RM) $(files_DATA)
 
 vkbd.portrait.edj: vkbd/vkbd.portrait.edc
-	@edje_cc@ -fd vkbd -id vkbd $< $@
+	@edje_cc@ -v -fd vkbd -id vkbd $< $@
 
 vkbd.landscape.edj: vkbd/vkbd.landscape.edc
-	@edje_cc@ -fd vkbd -id vkbd $< $@
+	@edje_cc@ -v -fd vkbd -id vkbd $< $@

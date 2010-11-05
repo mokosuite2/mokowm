@@ -23,6 +23,7 @@
 #include <Ecore.h>
 #include <Eet.h>
 #include <Eina.h>
+#include <Edje.h>
 
 #include <unistd.h>
 #include <ctype.h>
@@ -34,8 +35,22 @@
 #endif
 
 #include "wm.h"
-#include "input.h"
+#include "vkbd.h"
+#include "qwo4.h"
 
+wm_input_client* input_win = NULL;
+
+static void input_show(int sig_num)
+{
+    if (input_win)
+        (input_win->show)(input_win);
+}
+
+static void input_hide(int sig_num)
+{
+    if (input_win)
+        (input_win->hide)(input_win);
+}
 
 int main(int argc, char* argv[])
 {
@@ -68,11 +83,6 @@ int main(int argc, char* argv[])
     }
 
 
-    //ecore_file_init();
-    //evas_init();
-    //edje_init();
-    //ecore_evas_init();
-
     if (!ecore_x_init(NULL)) {
         g_error("Cannot connect to X server. Exiting.");
         return EXIT_FAILURE;
@@ -84,12 +94,32 @@ int main(int argc, char* argv[])
     wm_init();
 
     if (!disable_input) {
+        ecore_evas_init();
+        edje_init();
+
         Ecore_X_Randr_Orientation orientation =
             ecore_x_randr_screen_primary_output_orientation_get(ecore_x_window_root_first_get());
 
-        input_win_new(orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
+        gboolean landscape = (orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
             orientation == ECORE_X_RANDR_ORIENTATION_ROT_270);
+
+        // TODO scelta metodo di input
+        //input_win = vkbd_create(NULL, landscape);
+        input_win = qwo4_create(NULL, landscape);
     }
+
+    // FIXME meglio un messagio X che dici? :)
+    // segnaletica ;)
+    struct sigaction usr1;
+    usr1.sa_handler = input_show;
+    usr1.sa_flags = 0;
+    sigaction(SIGUSR1, &usr1, NULL);
+
+    struct sigaction usr2;
+    usr2.sa_handler = input_hide;
+    usr2.sa_flags = 0;
+    sigaction(SIGUSR2, &usr2, NULL);
+
 
     // gestisci tutte le finestre
     manage_all_windows();

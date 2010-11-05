@@ -23,12 +23,33 @@
 
 #include "client.h"
 
+typedef struct wm_input_client {
+    // parent class (can be NULL)
+    wm_client* client;
+
+    // geometry
+    int x;
+    int y;
+    int width;
+    int height;
+
+    // functions
+    void (*set_orientation)(struct wm_input_client* ic, gboolean is_landscape);
+    void (*show)(struct wm_input_client* ic);
+    void (*hide)(struct wm_input_client* ic);
+
+    Ecore_Evas* window;
+    gboolean landscape;
+    void* private;
+
+} wm_input_client;
+
 void input_client_reconfigure(wm_client *c);
 
 void input_client_destroy(wm_client *c);
 void input_client_hide(wm_client *c);
 void input_client_show(wm_client *c);
 
-void input_client_screen_changed(wm_client *c, Ecore_X_Randr_Orientation orientation);
+void input_client_screen_changed(wm_input_client *ic, Ecore_X_Randr_Orientation orientation);
 
 #endif  /* __MOKOWM_INPUT_CLIENT_H */
