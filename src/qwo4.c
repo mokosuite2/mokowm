@@ -37,18 +37,15 @@
 #define PORTRAIT_INPUT_Y         (640 - PORTRAIT_INPUT_HEIGHT)
 
 #define GLYPH_FONT          "Sans:style=bold"
-#define GLYPH_SIZE_NORMAL   10
-#define GLYPH_SIZE_ACTIVE   12
+#define GLYPH_SIZE_NORMAL   18
+#define GLYPH_SIZE_ACTIVE   20
 #define GLYPH_COLOR_NORMAL  200, 200, 200, 255
 #define GLYPH_COLOR_ACTIVE  0, 0, 0, 255
 
 #define XCOORD(v)       (v[0])
 #define YCOORD(v)       (v[1])
 
-//#define POINT_CENTER    {WIDTH / 2, HEIGHT / 2}
-//#define CENTER_X        (WIDTH / 2)
-//#define CENTER_Y        (HEIGHT / 2)
-//static int center_point[] = { CENTER_X, CENTER_Y };
+#define SECTION_OFFSET  50
 
 // il quadrato sara' calcolato all'avvio
 #define CENTER_RADIUS   60
@@ -56,14 +53,6 @@ static int center_radius = CENTER_RADIUS * CENTER_RADIUS;
 
 // sezioni
 #define NUM_SECTIONS        4
-/*
-static int sections[NUM_SECTIONS][3][2] = {
-    { {0, 0}, {WIDTH, 0}, POINT_CENTER },               // sezione superiore
-    { {WIDTH, 0}, {WIDTH, HEIGHT}, POINT_CENTER },      // sezione destra
-    { {0, HEIGHT}, {WIDTH, HEIGHT}, POINT_CENTER },     // sezione inferiore
-    { {0, HEIGHT}, {0, 0}, POINT_CENTER }               // sezione sinistra
-};
-*/
 
 // lettere disponibili
 #define LETTERS_PER_SECTION     NUM_SECTIONS
@@ -77,6 +66,8 @@ typedef struct {
     bool moving;
     // TRUE quando stiamo muovendo il mouse nel centro
     bool in_center;
+    // TRUE se non siamo ancora usciti dal centro dopo una pressione
+    bool is_space;
 
     // sezione corrente
     int cur_section; // = -1;
@@ -185,6 +176,7 @@ static void _press(void *data, Evas *e, Evas_Object *obj, void *event_info)
     if (inside_center(priv, x, y)) {
         EINA_LOG_DBG("Press inside center!");
         priv->moving = TRUE;
+        priv->is_space = TRUE;
         priv->cur_section = -1;
         priv->in_center = TRUE;
     }
@@ -196,6 +188,9 @@ static void _move(void *data, Evas *e, Evas_Object *obj, void *event_info)
     qwo4_private_data* priv = ic->private;
 
     if (priv->moving) {
+        // subito ferma lo spazio
+        priv->is_space = FALSE;
+
         Evas_Event_Mouse_Move* event = event_info;
         int x = event->cur.canvas.x;
         int y = event->cur.canvas.y;
@@ -276,8 +271,14 @@ static void _release(void *data, Evas *e, Evas_Object *obj, void *event_info)
     wm_input_client* ic = data;
     qwo4_private_data* priv = ic->private;
 
+    if (priv->is_space) {
+        fakekey_press(priv->fk, (unsigned char *) " ", 1, 0);
+        fakekey_release(priv->fk);
+    }
+
     EINA_LOG_DBG("releasing");
     priv->moving = FALSE;
+    priv->is_space = FALSE;
     reset(priv);
 }
 
@@ -339,26 +340,30 @@ wm_input_client* qwo4_create(wm_client* c, bool landscape)
     priv->center_point[1] = ic->height / 2;
 
     // upper section
-    priv->sections[0][1][0] = ic->width;
+    priv->sections[0][0][0] = SECTION_OFFSET;
+    priv->sections[0][1][0] = ic->width - SECTION_OFFSET;
     priv->sections[0][2][0] = XCOORD(priv->center_point);
     priv->sections[0][2][1] = YCOORD(priv->center_point);
 
     // right section
-    priv->sections[1][0][0] = ic->width;
-    priv->sections[1][1][0] = ic->width;
+    priv->sections[1][0][0] = ic->width - SECTION_OFFSET;
+    priv->sections[1][1][0] = ic->width - SECTION_OFFSET;
     priv->sections[1][1][1] = ic->height;
     priv->sections[1][2][0] = XCOORD(priv->center_point);
     priv->sections[1][2][1] = YCOORD(priv->center_point);
 
     // bottom section
+    priv->sections[2][0][0] = SECTION_OFFSET;
     priv->sections[2][0][1] = ic->height;
-    priv->sections[2][1][0] = ic->width;
+    priv->sections[2][1][0] = ic->width - SECTION_OFFSET;
     priv->sections[2][1][1] = ic->height;
     priv->sections[2][2][0] = XCOORD(priv->center_point);
     priv->sections[2][2][1] = YCOORD(priv->center_point);
 
     // left section
+    priv->sections[3][0][0] = SECTION_OFFSET;
     priv->sections[3][0][1] = ic->height;
+    priv->sections[3][1][0] = SECTION_OFFSET;
     priv->sections[3][2][0] = XCOORD(priv->center_point);
     priv->sections[3][2][1] = YCOORD(priv->center_point);
 
@@ -384,24 +389,28 @@ wm_input_client* qwo4_create(wm_client* c, bool landscape)
     ecore_evas_title_set(ic->window, "qwo4");
     Evas* evas = ecore_evas_get(ic->window);
 
-    Evas_Object *bg = evas_object_rectangle_add(evas);
+    //Evas_Object *bg = evas_object_rectangle_add(evas);
+    Evas_Object *bg = evas_object_image_filled_add(evas);
+    evas_object_image_file_set(bg, DATADIR "/mokosuite/wm/qwo4_back.png", NULL);
     evas_object_resize(bg, ic->width, ic->height);
     evas_object_color_set(bg, 255, 255, 255, 255);
     evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(bg, EVAS_HINT_FILL, EVAS_HINT_FILL);
     evas_object_show(bg);
 
+#if 0
     Evas_Object* diag1 = evas_object_line_add(evas);
     evas_object_color_set(diag1, 0, 255, 0, 255);
-    evas_object_line_xy_set(diag1, 0, 0, ic->width, ic->height);
+    evas_object_line_xy_set(diag1, SECTION_OFFSET, 0, ic->width - SECTION_OFFSET, ic->height);
     evas_object_pass_events_set(diag1, TRUE);
     evas_object_show(diag1);
 
     Evas_Object* diag2 = evas_object_line_add(evas);
     evas_object_color_set(diag2, 0, 0, 255, 255);
-    evas_object_line_xy_set(diag2, 0, ic->height, ic->width, 0);
+    evas_object_line_xy_set(diag2, SECTION_OFFSET, ic->height, ic->width - SECTION_OFFSET, 0);
     evas_object_pass_events_set(diag2, TRUE);
     evas_object_show(diag2);
+#endif
 
     Evas_Object** glyphs = priv->glyphs = calloc(strlen(letters), sizeof(Evas_Object*));
 
@@ -409,52 +418,55 @@ wm_input_client* qwo4_create(wm_client* c, bool landscape)
     // -40 = x*30
     // x*30 = -40
     // x = -40/30 = -4/3
-#define LINE_PRI(x, off)     (((float)-3.5/5*x) - off)
-#define SECT1_OFF       25
-    glyphs[0] = draw_letter(priv, evas, "a", 70, LINE_PRI(70, SECT1_OFF));
-    glyphs[1] = draw_letter(priv, evas, "b", 100, LINE_PRI(100, SECT1_OFF));
-    glyphs[2] = draw_letter(priv, evas, "c", 130, LINE_PRI(130, SECT1_OFF));
-    glyphs[3] = draw_letter(priv, evas, "d", 160, LINE_PRI(160, SECT1_OFF));
+#define LINE_PRI(x, off)     (((float)-4/5*x) - off)
+#define SECT1_OFF       60
+    glyphs[0] = draw_letter(priv, evas, "a", 40, LINE_PRI(40, SECT1_OFF));
+    glyphs[1] = draw_letter(priv, evas, "b", 70, LINE_PRI(70, SECT1_OFF));
+    glyphs[2] = draw_letter(priv, evas, "c", 100, LINE_PRI(100, SECT1_OFF));
+    glyphs[3] = draw_letter(priv, evas, "d", 130, LINE_PRI(130, SECT1_OFF));
 
 #define SECT2_OFF       -10
-    glyphs[12] = draw_letter(priv, evas, "e", 90, LINE_PRI(90, SECT2_OFF));
-    glyphs[13] = draw_letter(priv, evas, "f", 120, LINE_PRI(120, SECT2_OFF));
-    glyphs[14] = draw_letter(priv, evas, "g", 150, LINE_PRI(150, SECT2_OFF));
-    glyphs[15] = draw_letter(priv, evas, "h", 180, LINE_PRI(180, SECT2_OFF));
+    glyphs[12] = draw_letter(priv, evas, "e", 80, LINE_PRI(80, SECT2_OFF));
+    glyphs[13] = draw_letter(priv, evas, "f", 110, LINE_PRI(110, SECT2_OFF));
+    glyphs[14] = draw_letter(priv, evas, "g", 140, LINE_PRI(140, SECT2_OFF));
+    glyphs[15] = draw_letter(priv, evas, "h", 170, LINE_PRI(170, SECT2_OFF));
 
-#define SECT4_OFF       -5
-    glyphs[16] = draw_letter(priv, evas, "q", -70, LINE_PRI(-60, SECT4_OFF));
-    glyphs[17] = draw_letter(priv, evas, "r", -90, LINE_PRI(-90, SECT4_OFF));
-    glyphs[18] = draw_letter(priv, evas, "s", -120, LINE_PRI(-120, SECT4_OFF));
-    glyphs[19] = draw_letter(priv, evas, "t", -150, LINE_PRI(-150, SECT4_OFF));
+#define SECT4_OFF       -20
+    glyphs[16] = draw_letter(priv, evas, "q", -40, LINE_PRI(-40, SECT4_OFF));
+    glyphs[17] = draw_letter(priv, evas, "r", -70, LINE_PRI(-70, SECT4_OFF));
+    glyphs[18] = draw_letter(priv, evas, "s", -100, LINE_PRI(-100, SECT4_OFF));
+    glyphs[19] = draw_letter(priv, evas, "t", -130, LINE_PRI(-130, SECT4_OFF));
 
-#define SECT5_OFF       35
-    glyphs[28] = draw_letter(priv, evas, "u", -90, LINE_PRI(-90, SECT5_OFF));
-    glyphs[29] = draw_letter(priv, evas, "v", -120, LINE_PRI(-120, SECT5_OFF));
-    glyphs[30] = draw_letter(priv, evas, "w", -150, LINE_PRI(-150, SECT5_OFF));
-    glyphs[31] = draw_letter(priv, evas, "x", -180, LINE_PRI(-180, SECT5_OFF));
+#define SECT5_OFF       50
+    glyphs[28] = draw_letter(priv, evas, "u", -80, LINE_PRI(-80, SECT5_OFF));
+    glyphs[29] = draw_letter(priv, evas, "v", -110, LINE_PRI(-110, SECT5_OFF));
+    glyphs[30] = draw_letter(priv, evas, "w", -140, LINE_PRI(-140, SECT5_OFF));
+    glyphs[31] = draw_letter(priv, evas, "x", -170, LINE_PRI(-170, SECT5_OFF));
 
     // diagonale secondaria /
 #define LINE_SEC(x, off)     (((float)3.5/5*x) - off)
-    glyphs[4] = draw_letter(priv, evas, "?", -70, LINE_SEC(-70, SECT1_OFF));
-    glyphs[5] = draw_letter(priv, evas, "!", -100, LINE_SEC(-100, SECT1_OFF));
-    glyphs[6] = draw_letter(priv, evas, ".", -130, LINE_SEC(-130, SECT1_OFF));
-    glyphs[7] = draw_letter(priv, evas, ",", -160, LINE_SEC(-160, SECT1_OFF));
+    glyphs[4] = draw_letter(priv, evas, "?", -40, LINE_SEC(-40, SECT1_OFF));
+    glyphs[5] = draw_letter(priv, evas, "!", -70, LINE_SEC(-70, SECT1_OFF));
+    glyphs[6] = draw_letter(priv, evas, ".", -100, LINE_SEC(-100, SECT1_OFF));
+    glyphs[7] = draw_letter(priv, evas, ",", -130, LINE_SEC(-130, SECT1_OFF));
 
-    glyphs[24] = draw_letter(priv, evas, "y", -90, LINE_SEC(-90, SECT2_OFF));
-    glyphs[25] = draw_letter(priv, evas, "z", -120, LINE_SEC(-120, SECT2_OFF));
-    glyphs[26] = draw_letter(priv, evas, "@", -150, LINE_SEC(-150, SECT2_OFF));
-    glyphs[27] = draw_letter(priv, evas, "'", -180, LINE_SEC(-180, SECT2_OFF));
+#define SECT2_1_OFF       -20
+    glyphs[24] = draw_letter(priv, evas, "y", -80, LINE_SEC(-80, SECT2_1_OFF));
+    glyphs[25] = draw_letter(priv, evas, "z", -110, LINE_SEC(-110, SECT2_1_OFF));
+    glyphs[26] = draw_letter(priv, evas, "@", -140, LINE_SEC(-140, SECT2_1_OFF));
+    glyphs[27] = draw_letter(priv, evas, "'", -170, LINE_SEC(-170, SECT2_1_OFF));
 
-    glyphs[8] = draw_letter(priv, evas, "i", 80, LINE_SEC(80, SECT5_OFF));
-    glyphs[9] = draw_letter(priv, evas, "j", 110, LINE_SEC(110, SECT5_OFF));
-    glyphs[10] = draw_letter(priv, evas, "k", 140, LINE_SEC(140, SECT5_OFF));
-    glyphs[11] = draw_letter(priv, evas, "l", 170, LINE_SEC(170, SECT5_OFF));
+#define SECT5_1_OFF       40
+    glyphs[8] = draw_letter(priv, evas, "i", 80, LINE_SEC(80, SECT5_1_OFF));
+    glyphs[9] = draw_letter(priv, evas, "j", 110, LINE_SEC(110, SECT5_1_OFF));
+    glyphs[10] = draw_letter(priv, evas, "k", 140, LINE_SEC(140, SECT5_1_OFF));
+    glyphs[11] = draw_letter(priv, evas, "l", 170, LINE_SEC(170, SECT5_1_OFF));
 
-    glyphs[20] = draw_letter(priv, evas, "m", 70, LINE_SEC(70, SECT2_OFF));
-    glyphs[21] = draw_letter(priv, evas, "n", 100, LINE_SEC(100, SECT2_OFF));
-    glyphs[22] = draw_letter(priv, evas, "o", 130, LINE_SEC(130, SECT2_OFF));
-    glyphs[23] = draw_letter(priv, evas, "p", 160, LINE_SEC(160, SECT2_OFF));
+#define SECT2_2_OFF      -35
+    glyphs[20] = draw_letter(priv, evas, "m", 30, LINE_SEC(30, SECT2_2_OFF));
+    glyphs[21] = draw_letter(priv, evas, "n", 70, LINE_SEC(70, SECT2_2_OFF));
+    glyphs[22] = draw_letter(priv, evas, "o", 100, LINE_SEC(100, SECT2_2_OFF));
+    glyphs[23] = draw_letter(priv, evas, "p", 130, LINE_SEC(130, SECT2_2_OFF));
 
     // i callback sono sullo sfondo
     evas_object_event_callback_add(bg, EVAS_CALLBACK_MOUSE_MOVE, _move, ic);

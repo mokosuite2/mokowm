@@ -310,7 +310,7 @@ void vkbd_set_orientation(wm_input_client* ic, bool landscape)
 
         vkbd_private_data* priv = ic->private;
 
-        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
+        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/wm/vkbd.%s.edj", landscape ? "landscape" : "portrait");
         edje_object_file_set(priv->kbd, edjfile, "main");
         g_free(edjfile);
 
@@ -362,7 +362,7 @@ wm_input_client* vkbd_create(wm_client* client, bool landscape)
 
     priv->kbd = edje_object_add(evas);
 
-    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", landscape ? "landscape" : "portrait");
+    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/wm/vkbd.%s.edj", landscape ? "landscape" : "portrait");
     edje_object_file_set(priv->kbd, edjfile, "main");
     g_free(edjfile);
 

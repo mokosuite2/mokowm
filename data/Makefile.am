@@ -1,7 +1,7 @@
 MAINTAINERCLEANFILES = Makefile.in
 
-filesdir = $(datadir)/mokosuite
-files_DATA = vkbd.portrait.edj vkbd.landscape.edj
+filesdir = $(datadir)/mokosuite/wm
+files_DATA = qwo4_back.png vkbd.portrait.edj vkbd.landscape.edj
 
 xmodmapdir = $(sysconfdir)/X11/xmodmap
 xmodmap_DATA = mokosuite.xmodmap
@@ -11,7 +11,7 @@ bin_SCRIPTS = mokosession
 EXTRA_DIST = $(files_DATA) $(xmodmap_DATA) vkbd
 
 clean-local:
-	$(RM) $(files_DATA)
+	$(RM) *.edj
 
 vkbd.portrait.edj: vkbd/vkbd.portrait.edc
 	@edje_cc@ -v -fd vkbd -id vkbd $< $@
