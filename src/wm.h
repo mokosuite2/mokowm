@@ -54,6 +54,7 @@ wm_client* find_client(Ecore_X_Window win);
 Ecore_X_Window get_parent(Ecore_X_Window root, Ecore_X_Window win);
 
 void raise_important(void);
+void raise_fullscreen(wm_client* c);
 void reset_stack(void);
 
 void raise_client(wm_client* c);

@@ -68,13 +68,18 @@ int main(int argc, char* argv[])
     eina_log_domain_level_set(PACKAGE, LOG_LEVEL);
 
     bool disable_input = FALSE;
+    bool enable_qwo4 = FALSE;
 
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "i")) != -1) {
+    while ((c = getopt (argc, argv, "iq")) != -1) {
         switch (c) {
             case 'i':
                 disable_input = TRUE;
+                break;
+
+            case 'q':
+                enable_qwo4 = TRUE;
                 break;
 
             default:
@@ -108,9 +113,8 @@ int main(int argc, char* argv[])
         gboolean landscape = (orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
             orientation == ECORE_X_RANDR_ORIENTATION_ROT_270);
 
-        // TODO scelta metodo di input
-        //input_win = vkbd_create(NULL, landscape);
-        input_win = qwo4_create(NULL, landscape);
+        // scelta metodo di input
+        input_win = ((enable_qwo4) ? qwo4_create : vkbd_create)(NULL, landscape);
     }
 
     // FIXME meglio un messagio X che dici? :)
