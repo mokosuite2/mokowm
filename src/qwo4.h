@@ -26,12 +26,13 @@
 #include <glib.h>
 
 #include "input_client.h"
+#include "globals.h"
 
-wm_input_client* qwo4_create(wm_client* client, gboolean is_landscape);
+wm_input_client* qwo4_create(wm_client* client, bool landscape);
 
 void qwo4_show(wm_input_client* ic);
 void qwo4_hide(wm_input_client* ic);
 
-void qwo4_set_orientation(wm_input_client* ic, gboolean is_landscape);
+void qwo4_set_orientation(wm_input_client* ic, bool landscape);
 
 #endif  /* __QWO4_H */

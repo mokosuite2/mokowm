@@ -22,6 +22,7 @@
 #define __MOKOWM_INPUT_CLIENT_H
 
 #include "client.h"
+#include "globals.h"
 
 typedef struct wm_input_client {
     // parent class (can be NULL)
@@ -34,7 +35,7 @@ typedef struct wm_input_client {
     int height;
 
     // functions
-    void (*set_orientation)(struct wm_input_client* ic, gboolean is_landscape);
+    void (*set_orientation)(struct wm_input_client* ic, bool landscape);
     void (*show)(struct wm_input_client* ic);
     void (*hide)(struct wm_input_client* ic);
 

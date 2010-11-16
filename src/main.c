@@ -34,11 +34,17 @@
 #include "config.h"
 #endif
 
+#include "globals.h"
 #include "wm.h"
 #include "vkbd.h"
 #include "qwo4.h"
 
+// default log domain
+int _log_dom = -1;
+
+// input window in use
 wm_input_client* input_win = NULL;
+
 
 static void input_show(int sig_num)
 {
@@ -54,29 +60,33 @@ static void input_hide(int sig_num)
 
 int main(int argc, char* argv[])
 {
-    g_type_init();
-    g_set_prgname(PACKAGE);
-
     eina_init();
-    eet_init();
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
 
-    gboolean disable_input = FALSE;
+    _log_dom = eina_log_domain_register(PACKAGE, EINA_COLOR_CYAN);
+    eina_log_domain_level_set(PACKAGE, LOG_LEVEL);
+
+    bool disable_input = FALSE;
+    bool enable_qwo4 = FALSE;
 
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "i")) != -1) {
+    while ((c = getopt (argc, argv, "iq")) != -1) {
         switch (c) {
             case 'i':
                 disable_input = TRUE;
                 break;
 
+            case 'q':
+                enable_qwo4 = TRUE;
+                break;
+
             default:
                 if (isprint(optopt))
-                    g_error("Unknown option: `-%c'.", optopt);
+                    EINA_LOG_ERR("Unknown option: `-%c'.", optopt);
                 else
-                    g_error("Unknown option: `-\\x%x'.", optopt);
+                    EINA_LOG_ERR("Unknown option: `-\\x%x'.", optopt);
                 return EXIT_FAILURE;
         }
         opterr = 0;
@@ -84,7 +94,7 @@ int main(int argc, char* argv[])
 
 
     if (!ecore_x_init(NULL)) {
-        g_error("Cannot connect to X server. Exiting.");
+        EINA_LOG_ERR("Cannot connect to X server. Exiting.");
         return EXIT_FAILURE;
     }
 
@@ -103,9 +113,8 @@ int main(int argc, char* argv[])
         gboolean landscape = (orientation == ECORE_X_RANDR_ORIENTATION_ROT_90 ||
             orientation == ECORE_X_RANDR_ORIENTATION_ROT_270);
 
-        // TODO scelta metodo di input
-        //input_win = vkbd_create(NULL, landscape);
-        input_win = qwo4_create(NULL, landscape);
+        // scelta metodo di input
+        input_win = ((enable_qwo4) ? qwo4_create : vkbd_create)(NULL, landscape);
     }
 
     // FIXME meglio un messagio X che dici? :)

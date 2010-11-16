@@ -5,6 +5,7 @@ bin_PROGRAMS = mokowm
 
 mokowm_SOURCES = \
 	main.c \
+	globals.h \
 	vkbd.c \
 	vkbd.h \
 	qwo4.c \

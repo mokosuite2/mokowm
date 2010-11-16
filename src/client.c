@@ -239,8 +239,11 @@ Eina_Bool client_property_change(void* data, int type, void* event)
         g_debug("[%s] New type (%d) = %d", __func__, rc, c->type);
         assign_client(c);
 
-        // forse e' il caso di resettare tutto...
-        resize_all_clients();
+        // riconfigura client
+        reconfigure_client(c);
+        real_reconfigure_client(c);
+
+        // tira su le importanti
         raise_important();
     }
 
@@ -273,11 +276,13 @@ Eina_Bool client_state_request(void* data, int type, void* event)
         else if (e->action == ECORE_X_WINDOW_STATE_ACTION_TOGGLE) {
             c->fullscreen ^= c->fullscreen;
         }
+
+        reconfigure_client(c);
+        real_reconfigure_client(c);
     }
 
-    resize_all_clients();
-    // TODO aggiustare gestione fullscreen
-    reset_stack();
+    // ritira su finestra per gestire fullscreen
+    raise_client(c);
     return EINA_TRUE;
 }
 

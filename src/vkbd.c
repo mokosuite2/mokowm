@@ -40,9 +40,7 @@ typedef struct {
     gboolean is_shift_down;
     gboolean is_mouse_down;
 
-    Ecore_Evas* ee;
     Evas_Object* kbd;
-
     FakeKey* fk;
     GHashTable* pressed_keys;
 } vkbd_private_data;
@@ -285,15 +283,15 @@ void vkbd_hide(wm_input_client* ic)
 }
 
 /* orientation change */
-void vkbd_set_orientation(wm_input_client* ic, gboolean is_landscape)
+void vkbd_set_orientation(wm_input_client* ic, bool landscape)
 {
     g_debug("[%s] old_landscape=%s, new_landscape=%s",
-        __func__, ic->landscape ? "true" : "false", is_landscape ? "true" : "false");
+        __func__, ic->landscape ? "true" : "false", landscape ? "true" : "false");
 
-    if (ic->landscape != is_landscape) {
-        ic->landscape = is_landscape;
+    if (ic->landscape != landscape) {
+        ic->landscape = landscape;
 
-        if (is_landscape) {
+        if (landscape) {
             ic->width = LANDSCAPE_INPUT_WIDTH;
             ic->height = LANDSCAPE_INPUT_HEIGHT;
             ic->x = LANDSCAPE_INPUT_X;
@@ -312,7 +310,7 @@ void vkbd_set_orientation(wm_input_client* ic, gboolean is_landscape)
 
         vkbd_private_data* priv = ic->private;
 
-        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", is_landscape ? "landscape" : "portrait");
+        char* edjfile = g_strdup_printf(DATADIR "/mokosuite/wm/vkbd.%s.edj", landscape ? "landscape" : "portrait");
         edje_object_file_set(priv->kbd, edjfile, "main");
         g_free(edjfile);
 
@@ -322,20 +320,20 @@ void vkbd_set_orientation(wm_input_client* ic, gboolean is_landscape)
     }
 }
 
-wm_input_client* vkbd_create(wm_client* client, gboolean is_landscape)
+wm_input_client* vkbd_create(wm_client* client, bool landscape)
 {
     wm_input_client* ic = g_new0(wm_input_client, 1);
     vkbd_private_data* priv = g_new0(vkbd_private_data, 1);
 
     ic->client = client;
-    ic->landscape = is_landscape;
+    ic->landscape = landscape;
     ic->private = priv;
 
     ic->set_orientation = vkbd_set_orientation;
     ic->show = vkbd_show;
     ic->hide = vkbd_hide;
 
-    if (is_landscape) {
+    if (landscape) {
         ic->width = LANDSCAPE_INPUT_WIDTH;
         ic->height = LANDSCAPE_INPUT_HEIGHT;
         ic->x = LANDSCAPE_INPUT_X;
@@ -352,6 +350,8 @@ wm_input_client* vkbd_create(wm_client* client, gboolean is_landscape)
     ic->window = ecore_evas_new(NULL, ic->x, ic->y, ic->width, ic->height, NULL);
     if (!ic->window) {
         g_warning("[%s] Unable to create input window canvas", __func__);
+        g_free(ic->private);
+        g_free(ic);
         return NULL;
     }
 
@@ -362,7 +362,7 @@ wm_input_client* vkbd_create(wm_client* client, gboolean is_landscape)
 
     priv->kbd = edje_object_add(evas);
 
-    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/vkbd.%s.edj", is_landscape ? "landscape" : "portrait");
+    char* edjfile = g_strdup_printf(DATADIR "/mokosuite/wm/vkbd.%s.edj", landscape ? "landscape" : "portrait");
     edje_object_file_set(priv->kbd, edjfile, "main");
     g_free(edjfile);
 

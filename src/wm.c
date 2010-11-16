@@ -84,7 +84,7 @@ static Eina_Bool _ignore_renew_event(void* data, int type, void* event)
 static Eina_Bool _mouse_down(void* data, int type, void* event)
 {
     Ecore_Event_Mouse_Button* e = event;
-    g_debug("[%s] buttons=%d, modifiers = %d, win=0x%x, cur=0x%x", __func__, e->buttons, e->modifiers, e->window, ecore_x_window_focus_get());
+    g_debug("[%s] buttons=%d, modifiers=%d, win=0x%x, cur=0x%x", __func__, e->buttons, e->modifiers, e->window, ecore_x_window_focus_get());
 
     // dai il focus
     Ecore_X_Window win = ecore_x_window_focus_get();
@@ -162,7 +162,7 @@ static Eina_Bool _window_switcher(void* data)
 static Eina_Bool _key_down(void* data, int type, void* event)
 {
     Ecore_Event_Key* e = event;
-    g_debug("[%s] keyname=%s, key=%s, string=%s, modifiers = %d",
+    g_debug("[%s] keyname=%s, key=%s, string=%s, modifiers=%d",
         __func__, e->keyname, e->key, e->string, e->modifiers);
 
     // chiudi finestra
@@ -181,7 +181,7 @@ static Eina_Bool _key_down(void* data, int type, void* event)
 static Eina_Bool _key_up(void* data, int type, void* event)
 {
     Ecore_Event_Key* e = event;
-    g_debug("[%s] keyname=%s, key=%s, string=%s, modifiers = %d",
+    g_debug("[%s] keyname=%s, key=%s, string=%s, modifiers=%d",
         __func__, e->keyname, e->key, e->string, e->modifiers);
 
     // chiudi finestra
@@ -358,12 +358,23 @@ void raise_client(wm_client* c)
         g_queue_remove(windows, c);
         g_queue_push_head(windows, c);
 
-        // dai il focus alla finestra
-        raise_window(c->win);
+        // fullscreen
+        if (c->fullscreen) {
+            raise_important();
+            raise_fullscreen(c);
+        }
+
+        // semplice
+        else {
+            // dai il focus alla finestra
+            raise_window(c->win);
+        }
+
     }
 
     // ritira su le importanti
-    raise_important();
+    if (!c->fullscreen)
+        raise_important();
 }
 
 void raise_last(wm_client* this)
@@ -395,6 +406,30 @@ void raise_important(void)
 
     if (splash_client)
         raise_window(splash_client->win);
+}
+
+void raise_fullscreen(wm_client* c)
+{
+    if (c->fullscreen && (splash_client ? !splash_client->visible :
+            TRUE)) {
+        g_debug("[%s] raising fullscreen window 0x%x", __func__, c->win);
+        raise_window(c->win);
+
+        // cerca eventuali figli da tirare su
+        Ecore_X_Window c_parent = get_parent(c->root, c->win);
+
+        GList* children = windows->head;
+        while (children) {
+            wm_client* f = children->data;
+            Ecore_X_Window f_parent = get_parent(f->root, f->win);
+
+            if (f != c && (f_parent == c->win ||
+                    (f_parent == c_parent && f_parent != f->root)))
+                raise_window(f->win);
+
+            children = children->next;
+        }
+    }
 }
 
 // riorganizza lo stack per tirare su le finestre privilegiate
