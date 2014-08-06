@@ -86,7 +86,7 @@ typedef struct {
 
 } qwo4_private_data;
 
-// thanks to http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+// thanks to https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
 static int pnpoly(int nvert, int vert[][2], int testx, int testy)
 {
   int i, j, c = 0;
